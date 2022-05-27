@@ -1,36 +1,38 @@
 <?php
 
 class Database {
-    private $dbname;
-    private $dbhost;
-    private $dbport;
+    private $db;
+    private $host;
+    private $port;
     private $user;
     private $password;
     private $dsn;
     private $pdoOptions;
     protected $connection;
+    private $configName;
 
 
-    public function __construct($configName, $configPath){
+    public function __construct(string $configName, string $configPath){
 
-        if($configName == "sqlite"){
-            $this->assignDSN($configName,$configPath);
-        } else if ($configName == "mysql"){
+        if($configName == "sqlite3"){
+            $this->assignDSN($configName, $configPath);
+        }
+        else{
             $this->parseConfig($configName, $configPath);
-            $this->assignDSN($configName,$configPath);
+            $this->assignDSN();
         }
 
         $this->assignPDOOptions();
         if(file_exists($configPath)){
-            $this->db_open();
+            $this->dbopen();
         }
         else{
             throw new RuntimeException($configPath . " not found");
         }
-
     }
 
-    protected function parseConfig($configName, $configPath){
+
+    protected function parseConfig(string $configName, string $configPath){
         $path = __DIR__ . "/../../" . $configPath;
         if(file_exists($path))
         {
@@ -47,27 +49,17 @@ class Database {
         }
     }
 
-    protected function db_open() {
-        try {
-            $this->connection = new PDO($this->dsn, $this->user, $this->password, $this->pdoOptions);
+    protected function assignDSN($type = 'mysql', $dbFilePath = ""){
+        if($type == "mysql"){
+            $dsn = "mysql:";
+            $dsn .= "host=" . $this->host . ";";
+            $dsn .= "dbname=" . $this->db;
         }
-        catch (PDOException $e){
-            die($e->getMessage());
+        else{
+            $dsn = "sqlite:";
+            $dsn .= $dbFilePath;
         }
-    }
 
-    protected function db_close() {
-        $this->connection = null;
-    }
-
-    protected function assignDSN($configName,$dbFilePath){
-        if ($configName== "mysql") {
-            $dsn = $configName.": host=". $this->dbhost. ";"."dbname=". $this->dbname;
-        }
-        else if ($configName == "sqlite") {
-            $dsn = $configName.":".$dbFilePath;
-        }
-        
         $this->dsn = $dsn;
     }
 
@@ -77,6 +69,18 @@ class Database {
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ];
     }
-}
-?>
 
+    protected function dbopen(){
+        try {
+            $this->connection = new PDO($this->dsn, $this->user, $this->password, $this->pdoOptions);
+        }
+        catch (PDOException $e){
+            die($e->getMessage());
+        }
+    }
+
+    protected function dbclose(){
+        $this->connection = null;
+    }
+
+}
